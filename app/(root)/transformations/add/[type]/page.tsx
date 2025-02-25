@@ -8,7 +8,7 @@ import { getUserById } from '@/lib/actions/user.actions'
 import { redirect } from 'next/navigation'
 
 
-const AddTransformationTypePage = async ({ params }: SearchParamProps) => {
+const AddTransformationTypePage = async ({ params }: { params: { id: string; type: TransformationTypeKey } }) => {
   const { type } = await params
   // const transformation = transformationTypes[type]
   const transformation = transformationTypes[type] || { title: "Unknown", subTitle: "Invalid type" };

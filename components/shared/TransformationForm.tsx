@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client"
-import React, { useState, useTransition } from "react"
+import React, { useEffect, useState, useTransition } from "react"
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -19,11 +19,17 @@ import {
 } from "@/components/ui/select"
 
 import { Input } from "@/components/ui/input"
-import { aspectRatioOptions, defaultValues, transformationTypes } from "@/constants"
+import { aspectRatioOptions, creditFee, defaultValues, transformationTypes } from "@/constants"
 import { CustomField } from "./CustomField"
 import { AspectRatioKey, debounce, deepMergeObjects } from "@/lib/utils"
 import { Button } from "../ui/button"
 import MediaUploader from "./MediaUploader"
+import TransformedImage from "./TransformedImage"
+import { updateCredits } from "@/lib/actions/user.actions"
+import { getCldImageUrl } from "next-cloudinary"
+import { addImage, updateImage } from "@/lib/actions/image.actions"
+import { useRouter } from "next/navigation"
+import { InsufficientCreditsModal } from "./InsufficientCreditsModal"
 // import { updateCredits } from "@/lib/actions/user.actions"
 
 export const formSchema = z.object({
@@ -42,7 +48,9 @@ const TransformationForm = ({ action, data = null, userId, type, creditBalance, 
   const [isTransforming, setIsTransforming] = useState(false)
   const [transformationConfig, setTransformationConfig] = useState(config)
 
-  const [isPending, startTransition] = useTransition()  
+  const [isPending, startTransition] = useTransition()
+  
+  const router = useRouter();
 
   const initVal = data && action==='Update' ? {
     title:data?.title,
@@ -57,10 +65,65 @@ const TransformationForm = ({ action, data = null, userId, type, creditBalance, 
     defaultValues: initVal,
   })
   // 2. Define a submit handler.
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // Do something with the form values.
-    // ✅ This will be type-safe and validated.
-    console.log(values)
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true)
+    if(data || image){
+      const transformationURL = getCldImageUrl({
+        width:image?.width,
+        height:image?.height,
+        src:image?.publicId,
+        ...transformationConfig
+      })
+      const imageData = {
+        title: values.title,
+        publicId: image?.publicId,
+        transformationType: type,
+        width:image?.width,
+        height:image?.height,
+        config: transformationConfig,
+        secureURL: image?.secureURL,
+        transformationURL,
+        aspectRatio: values.aspectRatio,
+        prompt: values.prompt,
+        color: values.color
+      }
+      if(action==='Add'){
+        try{
+          const newImage = await addImage({
+            image: imageData,
+            userId,
+            path: '/'
+          })
+          if(newImage){
+            form.reset()
+            setImage(data)
+            router.push(`/transformations/${newImage._id}`)
+          }
+        }catch(e){
+          console.log(e)
+        }
+      }
+      if(action==='Update'){
+        try{
+          const updatedImage = await updateImage({
+            image: {
+              ...imageData,
+              _id: data._id,
+            },
+            userId,
+            path: `/transformations/${data._id}`
+          })
+          if(updatedImage){
+            // form.reset()
+            // setImage(data)
+            router.push(`/transformations/${updatedImage._id}`)
+          }
+        }catch(e){
+          console.log(e)
+        }
+      }
+    }
+    setIsSubmitting(false)
   }
 
   const onSelectFieldHandler = (value: string, onChangeField: (value: string) => void) => {
@@ -97,13 +160,22 @@ const TransformationForm = ({ action, data = null, userId, type, creditBalance, 
     )
     setNewTransformation(null)
     startTransition(async() =>{
-      // await updateCredits(userId, creditFee)
+      await updateCredits(userId, creditFee)
+      // await updateCredits(userId, -1)
     })
   }
+
+  useEffect(()=> {
+    if(image && (type==='restore' || type==='removeBackground')){
+      setNewTransformation(transformationType.config)
+    }
+  },[image, transformationType.config, type])
+
   return (
     // <div>TransformationForm</div>
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        {creditBalance < Math.abs(creditFee) && <InsufficientCreditsModal />}
         <CustomField 
           control={form.control}
           name="title"
@@ -190,6 +262,7 @@ const TransformationForm = ({ action, data = null, userId, type, creditBalance, 
               />
             )}
           />
+          <TransformedImage image={image} type={type} title={form.getValues().title} isTransforming={isTransforming} setIsTransforming={setIsTransforming} transformationConfig={transformationConfig}/>
         </div>
         <div className="flex flex-col gap-4">
           <Button type="button" className="submit-button capitalize" disabled={isTransforming || newTransformation===null} onClick={onTransformHandler}>{isTransforming?'Transforming...':'Apply Transformation'}</Button>
