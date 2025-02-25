@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 
+import { Toaster } from "@/components/ui/sonner"
+
 import { cn } from "@/lib/utils";
 import { ClerkProvider } from "@clerk/nextjs";
 
@@ -30,6 +32,7 @@ export default function RootLayout({
           className={cn("font-IBMPlex antialiased", IBMPlex.variable)}
         >
           {children}
+          <Toaster />
         </body>
       </html>
     </ClerkProvider>
