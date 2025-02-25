@@ -40,7 +40,7 @@ const MobileNav = () => {
                 Menu
               </SheetTitle>
             </VisuallyHidden.Root>
-              <Image src="/assets/images/logo-text.svg" alt='logo' width={152} height={23}/>
+              <Image src="/assets/images/logo-text.svg" alt="logo" width={152} height={23}/>
               <ul className='w-full flex-col items-center gap-2 mt-10 md:flex'>
                 {navLinks.map((link) => {
                   const isActive = link.route === pathname
@@ -50,7 +50,7 @@ const MobileNav = () => {
                       <Link className='p-16-semibold flex size-full gap-4 p-4' href={link.route}>
                         <Image
                           src={link.icon}
-                          alt='link-logo'
+                          alt="link-logo"
                           height={25}
                           width={25}
                           // className={`${isActive && 'brightness-200'}`}

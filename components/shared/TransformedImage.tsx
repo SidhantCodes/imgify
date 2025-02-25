@@ -1,3 +1,4 @@
+"use client"
 import React from 'react'
 import { Button } from '../ui/button'
 import Image from 'next/image'
@@ -28,7 +29,8 @@ const TransformedImage = ({ image, type, title, transformationConfig, isTransfor
 						width={getImageSize(type, image, "width")}
 						height={getImageSize(type, image, "height")}
 						src={image?.publicId}
-						alt={image?.title}
+						// alt={image?.title}
+						alt={image?.title || 'Transformed image'}
 						sizes={"(max-width: 767px) 100vw, 50vw"}
 						placeholder={dataUrl as PlaceholderValue}
 						className='transformed-image'
